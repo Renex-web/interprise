@@ -130,9 +130,15 @@ function App() {
     event.preventDefault();
     setMessage('');
     try {
-      const path = authMode === 'register' ? '/auth/register' : '/auth/login';
-      const payload = authMode === 'register' ? authForm : { userId: authForm.userId, password: authForm.password };
-      const data = path === '/auth/register' ? await registerUser(payload) : await loginUser(payload);
+      if (authMode === 'register') {
+        await registerUser(authForm);
+        setAuthMode('login');
+        setAuthForm({ userId: authForm.userId, username: '', password: '' });
+        setMessage('Registration successful. Please login with your credentials.');
+        return;
+      }
+
+      const data = await loginUser({ userId: authForm.userId, password: authForm.password });
       localStorage.setItem('dabSession', JSON.stringify(data));
       localStorage.setItem('dabToken', data.token);
       setToken(data.token);
@@ -277,13 +283,13 @@ function App() {
 
   if (!token) {
     return (
-      <main className="min-h-screen bg-[#edf2f8] px-4 py-10 text-slate-950">
-        <section className="mx-auto mt-14 w-full max-w-[540px] rounded-[28px] bg-white px-10 py-10 shadow-2xl shadow-slate-300/70">
-          <h1 className="mb-9 text-4xl font-bold tracking-normal">
+      <main className="flex min-h-screen items-center bg-[#edf2f8] px-4 py-6 text-slate-950 sm:py-10">
+        <section className="mx-auto w-full max-w-[540px] rounded-2xl bg-white px-5 py-7 shadow-2xl shadow-slate-300/70 sm:rounded-[28px] sm:px-10 sm:py-10">
+          <h1 className="mb-7 text-3xl font-bold tracking-normal sm:mb-9 sm:text-4xl">
             {authMode === 'register' ? 'Create Account' : 'Sign In'}
           </h1>
 
-          <form onSubmit={handleAuth} className="space-y-7">
+          <form onSubmit={handleAuth} className="space-y-5 sm:space-y-7">
             <label className="block">
               <span className="mb-2 block text-base">User ID</span>
               <input
@@ -324,7 +330,7 @@ function App() {
 
             {message && <p className="rounded-md bg-slate-100 px-4 py-3 text-sm text-slate-700">{message}</p>}
 
-            <button className="h-[53px] w-full rounded-2xl bg-slate-800 text-base font-bold text-white hover:bg-slate-950">
+            <button className="h-[50px] w-full rounded-xl bg-slate-800 text-base font-bold text-white hover:bg-slate-950 sm:h-[53px] sm:rounded-2xl">
               {authMode === 'register' ? 'Register' : 'Login'}
             </button>
           </form>
@@ -347,7 +353,7 @@ function App() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 text-slate-900">
+    <main className="min-h-screen overflow-x-hidden bg-slate-100 text-slate-900">
       <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-slate-200 bg-white px-5 py-6 lg:block">
         <h1 className="text-2xl font-bold">DAB Enterprise</h1>
         <p className="mt-1 text-sm text-slate-500">Electronics management</p>
@@ -373,8 +379,8 @@ function App() {
               <p className="text-sm text-slate-500">Logged in as {user?.username}</p>
               <h2 className="text-2xl font-bold capitalize">{activeTab}</h2>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <select className="rounded-lg border border-slate-300 px-3 py-2 lg:hidden" value={activeTab} onChange={(event) => setActiveTab(event.target.value)}>
+            <div className="flex w-full flex-wrap gap-2 lg:w-auto">
+              <select className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 lg:hidden" value={activeTab} onChange={(event) => setActiveTab(event.target.value)}>
                 {['dashboard', 'products', 'customers', 'orders', 'payments', 'reports'].map((tab) => (
                   <option key={tab} value={tab}>{tab}</option>
                 ))}
@@ -387,7 +393,7 @@ function App() {
           {message && <p className="mt-3 rounded-md bg-white px-3 py-2 text-sm text-slate-600 shadow-sm">{message}</p>}
         </header>
 
-        <div className="px-4 py-6 lg:px-8">
+        <div className="px-3 py-5 sm:px-4 sm:py-6 lg:px-8">
           {activeTab === 'dashboard' && (
             <section className="space-y-6">
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -424,7 +430,7 @@ function App() {
           )}
 
           {activeTab === 'products' && (
-            <section className="grid gap-6 xl:grid-cols-[360px_1fr]">
+            <section className="grid min-w-0 gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
               <Panel title={editingProduct ? 'Update Product' : 'Add Product'}>
                 <form onSubmit={saveProduct} className="space-y-4">
                   <Input label="Product name" value={productForm.productname} onChange={(value) => setProductForm({ ...productForm, productname: value })} />
@@ -457,7 +463,7 @@ function App() {
           )}
 
           {activeTab === 'customers' && (
-            <section className="grid gap-6 xl:grid-cols-[360px_1fr]">
+            <section className="grid min-w-0 gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
               <Panel title={editingCustomer ? 'Edit Customer' : 'Register Customer'}>
                 <form onSubmit={saveCustomer} className="space-y-4">
                   <Input label="First name" value={customerForm.firstname} onChange={(value) => setCustomerForm({ ...customerForm, firstname: value })} />
@@ -489,12 +495,12 @@ function App() {
           )}
 
           {activeTab === 'orders' && (
-            <section className="grid gap-6 xl:grid-cols-[420px_1fr]">
+            <section className="grid min-w-0 gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">
               <Panel title="Create Customer Order">
                 <form onSubmit={createOrder} className="space-y-4">
                   <Select label="Customer" value={orderForm.customerId} onChange={(value) => setOrderForm({ ...orderForm, customerId: value })} options={customers.map((customer) => ({ value: customer._id, label: `${customer.firstname} ${customer.lastname}` }))} />
                   {orderForm.items.map((item, index) => (
-                    <div className="grid grid-cols-[1fr_90px_32px] gap-2" key={index}>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_90px_40px]" key={index}>
                       <select className="field" value={item.productId} onChange={(event) => {
                         const items = [...orderForm.items];
                         items[index].productId = event.target.value;
@@ -508,7 +514,7 @@ function App() {
                         items[index].quantity = event.target.value;
                         setOrderForm({ ...orderForm, items });
                       }} />
-                      <button type="button" className="rounded-md bg-slate-200" onClick={() => setOrderForm({ ...orderForm, items: orderForm.items.filter((_, itemIndex) => itemIndex !== index) })}>x</button>
+                      <button type="button" className="min-h-11 rounded-md bg-slate-200 font-bold text-slate-700" onClick={() => setOrderForm({ ...orderForm, items: orderForm.items.filter((_, itemIndex) => itemIndex !== index) })}>x</button>
                     </div>
                   ))}
                   <button type="button" className="secondary-btn" onClick={() => setOrderForm({ ...orderForm, items: [...orderForm.items, { productId: '', quantity: 1 }] })}>Add Product</button>
@@ -533,7 +539,7 @@ function App() {
           )}
 
           {activeTab === 'payments' && (
-            <section className="grid gap-6 xl:grid-cols-[360px_1fr]">
+            <section className="grid min-w-0 gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
               <Panel title="Record Payment">
                 <form onSubmit={recordPayment} className="space-y-4">
                   <Select label="Order" value={paymentForm.orderId} onChange={(value) => setPaymentForm({ ...paymentForm, orderId: value })} options={orders.map((order) => ({ value: order._id, label: `${order.customer?.firstname || 'Customer'} - ${money(order.totalAmount)}` }))} />
@@ -686,7 +692,7 @@ function App() {
 
 function Panel({ title, children }) {
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+    <section className="min-w-0 rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
       <h3 className="mb-4 text-lg font-bold">{title}</h3>
       {children}
     </section>
@@ -695,9 +701,9 @@ function Panel({ title, children }) {
 
 function Stat({ title, value }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="min-w-0 rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
       <p className="text-sm font-semibold text-slate-500">{title}</p>
-      <p className="mt-2 text-3xl font-bold">{value}</p>
+      <p className="mt-2 break-words text-2xl font-bold sm:text-3xl">{value}</p>
     </div>
   );
 }
@@ -729,14 +735,14 @@ function Search({ value, onChange, placeholder }) {
 
 function Table({ headers, children }) {
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[680px] text-left text-sm">
+    <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+      <table className="w-full min-w-[560px] text-left text-xs sm:min-w-[680px] sm:text-sm">
         <thead>
           <tr className="border-b border-slate-200 text-slate-500">
-            {headers.map((header) => <th className="px-3 py-3 font-bold" key={header}>{header}</th>)}
+            {headers.map((header) => <th className="px-2 py-3 font-bold sm:px-3" key={header}>{header}</th>)}
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100 [&_td]:px-3 [&_td]:py-3">{children}</tbody>
+        <tbody className="divide-y divide-slate-100 [&_td]:px-2 [&_td]:py-3 sm:[&_td]:px-3">{children}</tbody>
       </table>
     </div>
   );
@@ -744,7 +750,7 @@ function Table({ headers, children }) {
 
 function RowActions({ onEdit, onDelete }) {
   return (
-    <div className="flex gap-2">
+    <div className="flex flex-col gap-2 sm:flex-row">
       <button className="rounded-md bg-slate-100 px-3 py-1 font-semibold text-slate-700" onClick={onEdit}>Edit</button>
       <button className="rounded-md bg-red-50 px-3 py-1 font-semibold text-red-700" onClick={onDelete}>Delete</button>
     </div>
